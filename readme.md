@@ -15,6 +15,7 @@ The User Manual Chat Application assists users by answering questions about prod
 
 - Python 3.8 or higher
 - pip and virtualenv
+- You will need to provide an OPENAI API Key with access to GPT-Vision in the environment file
 
 ## Setup Instructions
 
