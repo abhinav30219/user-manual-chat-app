@@ -2,12 +2,7 @@ import streamlit as st
 from dotenv import load_dotenv
 import time
 import openai
-from PyPDF2 import PdfReader
 from streamlit_extras.add_vertical_space import add_vertical_space
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
-from langchain.llms import OpenAI
-from langchain.chains.question_answering import load_qa_chain
 from langchain.callbacks import get_openai_callback
 import os
 from unstructured.partition.pdf import partition_pdf
@@ -49,6 +44,10 @@ load_dotenv()
 
 
 def main():
+    """
+    Main function to run the Streamlit app, handling file uploads and user queries.
+    """
+
     st.header("Chat with User Manual 💬")
 
     # Initialize session state variables if not already set
@@ -72,13 +71,23 @@ def main():
 
 
 def encode_image(image_path):
-    ''' Getting the base64 string '''
+    """
+    Encode an image file to a base64 string.
+    :param image_path: Path to the image file.
+    :return: Base64 encoded string of the image.
+    """
+
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
 
 def image_summarize(img_base64,prompt):
-    ''' Image summary '''
+    """
+    Summarize the content of an image using a pre-trained model.
+    :param img_base64: Base64 string of the image.
+    :param prompt: Prompt text to guide the model summarization.
+    :return: Summary of the image content.
+    """
 
     retries = 3
     delay = 0.276
@@ -115,7 +124,10 @@ def image_summarize(img_base64,prompt):
 
 
 def plt_img_base64(img_base64):
-
+    """
+    Display an image from a base64 string using IPython display.
+    :param img_base64: Base64 string of the image to display.
+    """
     # Create an HTML img tag with the base64 string as the source
     image_html = f'<img src="data:image/jpeg;base64,{img_base64}" />'
 
@@ -124,7 +136,11 @@ def plt_img_base64(img_base64):
 
 
 def split_image_text_types(docs):
-    ''' Split base64-encoded images and texts '''
+    """
+    Split documents into images and texts based on their content.
+    :param docs: List of documents to split.
+    :return: Dictionary with keys 'images' and 'texts', containing the respective documents.
+    """
     b64 = []
     text = []
     for doc in docs:
@@ -140,6 +156,16 @@ def split_image_text_types(docs):
 
 
 def index_content(texts, text_summaries, tables, table_summaries, img_base64_list, image_summaries):
+    """
+    Index text and image content into a retrievable format using a vector store and retriever.
+    :param texts: List of text documents.
+    :param text_summaries: Summaries of text documents.
+    :param tables: List of table documents.
+    :param table_summaries: Summaries of table documents.
+    :param img_base64_list: List of base64-encoded images.
+    :param image_summaries: Summaries of images.
+    :return: Configured retriever object.
+    """
     vectorstore = Chroma(collection_name="multi_modal_rag", embedding_function=OpenAIEmbeddings())
     store = InMemoryStore()
     id_key = "doc_id"
@@ -168,7 +194,10 @@ def index_content(texts, text_summaries, tables, table_summaries, img_base64_lis
 
 
 def process_pdf(uploaded_file):
-    """Processes the PDF file and stores the results in session state."""
+    """
+    Process the uploaded PDF file, extract content, and update session state with the processed data.
+    :param uploaded_file: Uploaded file object containing the PDF.
+    """
     # Display file details
     file_details = {"FileName": uploaded_file.name, "FileType": uploaded_file.type, "FileSize": uploaded_file.size}
     st.write(file_details)
@@ -259,6 +288,12 @@ def process_pdf(uploaded_file):
 
 
 def truncate_history(conversation_history, max_length=6):
+    """
+    Truncate the conversation history to a specified maximum length.
+    :param conversation_history: List of historical conversation entries.
+    :param max_length: Maximum number of entries to keep in the history.
+    :return: Truncated list of conversation history.
+    """
     # Keep only the last `max_length` entries of the conversation history
     if len(conversation_history) > max_length:
         return conversation_history[-max_length:]
@@ -266,6 +301,11 @@ def truncate_history(conversation_history, max_length=6):
 
 
 def update_history(query, response):
+    """
+    Update the session state with a new entry in the conversation history.
+    :param query: User query to add to the history.
+    :param response: System's response to add to the history.
+    """
     if 'conversation_history' not in st.session_state:
         st.session_state.conversation_history = []
     st.session_state.conversation_history.append({"query": query, "response": response})
@@ -273,6 +313,11 @@ def update_history(query, response):
 
 
 def prompt_func(dict):
+    """
+    Generate the prompt for the language model based on the given context.
+    :param dict: Dictionary containing context data for generating the prompt.
+    :return: HumanMessage object with the generated prompt.
+    """
     format_texts = "\n".join(dict["context"]["texts"])
     image_content = []
 
@@ -313,6 +358,10 @@ def prompt_func(dict):
 
 
 def handle_query(query):
+    """
+    Handle user queries using the retriever and display responses.
+    :param query: User query to process.
+    """
     if 'conversation_history' not in st.session_state:
         st.session_state.conversation_history = []
     if 'retriever' in st.session_state and st.session_state.retriever:
